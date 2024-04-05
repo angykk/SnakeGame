@@ -3,161 +3,145 @@ package code;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
+
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.geom.AffineTransform;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-public class Board extends JPanel implements ActionListener, KeyListener{
+public class Board extends JPanel implements ActionListener, KeyListener {
+	// Angela Huang Winter 2022, Final Project, Western Canada High School
 	
-	final int boardx = 400;
-	final int boardy = 400;
+	final int boardx = 400; // width of jpanel
+	final int boardy = 440; // length of jpanel
 	
-	final int cellSize = 20;
-	final int numCell = boardx / cellSize;
-	
-	private Snake snake;
-	private Apple apple;
-	
-	private Timer timer;
-	
+	final int boardStrip = 40; //length of the strip where "counter" will be displayed
+
+	final int cellSize = 20; // size of each coordinate cell
+	final int numCelly = (boardy - boardStrip) / cellSize; //number of cells on the y axis
+	final int numCellx = boardx / cellSize; //number of cells on the x axis
+
+	private Snake snake;//snake object
+	private Apple apple;//apple object
+
+	private static Timer timer;
+
 	final int right = 1;
 	final int left = 2;
 	final int up = 3;
 	final int down = 4;
-	private int direction = 1;
+	private int direction = right;
 	
-	AffineTransform headAT = new AffineTransform();
+	private boolean collide = false;
 	
+	private int counter = 0; //apple counter
+
 	public Board() {
-		setPreferredSize(new Dimension(boardx,boardy));
+		setPreferredSize(new Dimension(boardx, boardy));
 		setBackground(Color.BLACK);
 		setFocusable(true);
-		
-		snake = new Snake(numCell);
-		//\\apple = new Apple(numCell);
-		
-		timer = new Timer(200,this);
-		timer.start();
-		
-		addKeyListener(this);
-		
+
+		snake = new Snake(3, numCellx, numCelly);
+		apple = new Apple(numCellx, numCelly, snake.getPoints(), boardStrip, cellSize);
+
+		timer = new Timer(150, this); //150 millisecond delay
+		timer.start(); //game begins
+
+		addKeyListener(this); //detects if a key is pressed on this panel
 	}
-	
-	
-	@Override
+
+	@Override //program calls when needed
+	//https://docs.oracle.com/en/java/javase/13/docs/api/java.desktop/java/awt/Graphics.html
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		Graphics2D g2d = (Graphics2D) g;
-		g2d.setColor(Color.white);
+		g.setColor(Color.white);
 		
-	    for (Point p : snake.getPoints()) {
-	    	g2d.fillRect(p.x * cellSize, p.y * cellSize, cellSize, cellSize);
-	    }
+		g.drawString("Apples: " + counter, 0 , cellSize); //counter
 		
-		for (int x = 0; x < snake.getPoints().size(); x ++) {
-			 Point p = snake.getPoints().get(x);
-			 int width = cellSize *(p.x);
-			 int height = cellSize *(p.y);
+		if(collide) {
+			g.drawString("GAME OVER", boardx - boardx/5, cellSize);
+		}
 
-			 if (x == 0) {
-				 g2d.drawImage(snake.getHead(), cellSize *(p.x), cellSize *(p.y), cellSize,cellSize, this);	 
-			 } else if (x == snake.getPoints().size() - 1) 
-				 g2d.drawImage(snake.getTail(), cellSize *(p.x), cellSize *(p.y), cellSize,cellSize, this);
-			 else {
-//				 g2d.drawImage(snake.getBody(), cellSize *(p.x), cellSize *(p.y), cellSize,cellSize, this);
-			 }
-		}
-		
-		//Point p = apple.getPoints();
-		//g.drawImage(apple.getApple(), cellSize *(p.x), cellSize *(p.y), cellSize,cellSize, this);
-		
-		//set colour of lines (R,G,B,OPACITY)
-		g.setColor(new Color(255,255,255, 128));
-		//horizontal lines
-		for (int x = 0; x < numCell; x ++) {
+		for (int x = 0; x < snake.getPoints().size(); x ++) {
+			Point p = snake.getPoints().get(x);
+			g.fillRect(p.x * cellSize, p.y * cellSize, cellSize, cellSize);
+		} //displays snake
+
+		Point p = apple.getPoints();
+		g.drawImage(apple.getApple(), cellSize * (p.x), cellSize * (p.y), cellSize, cellSize, this);
+
+		// set colour of lines (R,G,B,OPACITY)
+		g.setColor(new Color(255, 255, 255, 128));
+		// horizontal lines
+		for (int x = boardStrip/cellSize; x < numCelly + 1 + boardStrip/cellSize; x++) {
 			int yPosition = x * cellSize;
-			g.drawLine(0,yPosition, boardx,yPosition);
+			g.drawLine(0, yPosition, boardx, yPosition);
 		}
-		//vertical lines
-		for (int x = 0; x < numCell; x ++) {
+		// vertical lines
+		for (int x = 0; x < numCellx; x++) {
 			int xPosition = x * cellSize;
-			g.drawLine(xPosition,0 ,xPosition,boardy);
+			g.drawLine(xPosition, boardStrip, xPosition, boardy);
 		}
 	}
 	
-	private void movement() {
-		//body
-		for (int x = snake.getPoints().size() - 1; x > 0; x --) {
-			
-			Point currentPosition = snake.getPoints().get(x);
-			Point previousPosition = snake.getPoints().get(x-1);
-//			position = snake.getPoints().get(x-1);
-			currentPosition.setLocation(previousPosition);
-		}
-		
-		//head
-		Point head = snake.getPoints().get(0);
-		if (direction == right) 
-			head.x ++;
-		
-		else if(direction == left) {
-			head.x --;
-			//headAT.rotate(Math.PI, width, height);
-		}
-		else if (direction == up)
-			head.y--;
-		else
-			head.y++;
-			
+	public static void endGame() {
+		timer.stop(); //stops game
 	}
-	
+
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("Snake Game");
 		frame.add(new Board());
-        frame.setSize(410,410);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
-        frame.setResizable(false);
-        frame.pack();
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setVisible(true);
+		frame.setResizable(false);
+		frame.pack(); //minimum size of window while taking into account all components
 	}
 
-
-	@Override
+	@Override //auto generated by implementation (timer calls this method every 150 milliseconds)
 	public void actionPerformed(ActionEvent e) {
-		movement();
-		repaint();
+		boolean shouldGrow = apple.getPoints().equals(snake.getHeadPoint()); 
+		//checking if position of head is the same as the apple coordinate - therefore snake should grow
+		counter = snake.grow(shouldGrow, apple, counter); //updating the counter as well as adding length to snake
 		
+		snake.movement(direction);
+		
+		if(snake.collide(numCellx, numCelly, boardStrip, cellSize)) {
+			collide = true;
+			endGame();
+		}
+		else {
+			repaint(); //calls the paintComponent(g) method - repaints board (displays changes)
+		}
+		
+
 	}
-	
-	@Override
-    public void keyPressed(KeyEvent e) {
-      int key = e.getKeyCode();
-      if (key == KeyEvent.VK_UP && direction != down) {
-    	direction = up;
-      } else if (key == KeyEvent.VK_DOWN && direction != up) {
-        direction = down;
-      } else if (key == KeyEvent.VK_LEFT && direction != right) {
-    	 direction = left;
-      } else if (key == KeyEvent.VK_RIGHT && direction != left) {
-    	 direction = right;
-      }
-    }
 
-    @Override
-    public void keyReleased(KeyEvent e) {}
+	@Override //auto generated by implementation (when keys are pressed, this is called)
+	public void keyPressed(KeyEvent e) {
+		int key = e.getKeyCode(); // https://docs.oracle.com/javase/tutorial/uiswing/events/keylistener.html
+		
+		if (key == KeyEvent.VK_UP && direction != down) {
+			direction = up;
+		} else if (key == KeyEvent.VK_DOWN && direction != up) {
+			direction = down;
+		} else if (key == KeyEvent.VK_LEFT && direction != right) {
+			direction = left;
+		} else if (key == KeyEvent.VK_RIGHT && direction != left) {
+			direction = right;
+		}
+	}
 
-    @Override
-    public void keyTyped(KeyEvent e) {}
-    
-	
+	@Override //auto generated by implementation
+	public void keyReleased(KeyEvent e) {
+	}
+
+	@Override //auto generated by implementation
+	public void keyTyped(KeyEvent e) {
+	}
 
 }
-
